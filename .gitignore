@@ -15,6 +15,5 @@ composer.phar
 .phpunit.result.cache
 
 composer.lock
-.savant/
-.DS_Store
 .env
+.savant/

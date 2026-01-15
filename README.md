@@ -1,4 +1,4 @@
-# permify-demo
+# permify-php
 
 Permify is an open source authorization service for creating fine-grained and scalable authorization systems.
 
@@ -37,7 +37,7 @@ Download the files and include `autoload.php`:
 
 ```php
 <?php
-require_once('/path/to/permify-demo/vendor/autoload.php');
+require_once('/path/to/permify-php/vendor/autoload.php');
 ```
 
 ## Getting Started

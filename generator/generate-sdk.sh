@@ -138,7 +138,7 @@ fi
 echo "Updating SDK project directory..."
 
 # Copy src directory
-SRC_DIR="${PROJECT_ROOT}/src"
+SRC_DIR="${PROJECT_ROOT}/lib"
 if [[ -d "${TEMP_OUTPUT_DIR}/lib" ]]; then
     echo "  Updating ${SRC_DIR}"
     rm -rf "${SRC_DIR}"

@@ -45,8 +45,8 @@ jobs:
 
       - name: update savant properties file
         run: |
-          echo "packagistUsername=${{ env.FA_PACKAGIST_USERNAME }}" >> ~/.savant/config.properties
-          echo "packagistAPIToken=${{ env.FA_PACKAGIST_TOKEN }}" >> ~/.savant/config.properties
+          echo "packagistUsername=${{ env.PERMIFY_PACKAGIST_USERNAME }}" >> ~/.savant/config.properties
+          echo "packagistAPIToken=${{ env.PERMIFY_PACKAGIST_TOKEN }}" >> ~/.savant/config.properties
 
       - name: release to svn
         if: inputs.command == 'release'

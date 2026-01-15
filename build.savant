@@ -1,0 +1,54 @@
+
+project(group: "co.permify", name: "permify-php", version: "1.5.4", licenses: ["GPLV3_0"]) {
+  workflow {
+    fetch {
+      cache()
+      url(url: "https://repository.savantbuild.org")
+    }
+    publish {
+      cache()
+    }
+  }
+
+  publishWorkflow {
+    subversion(repository: "https://svn.savantbuild.org")
+  }
+}
+
+// Plugins
+file = loadPlugin(id: "org.savantbuild.plugin:file:2.0.0")
+idea = loadPlugin(id: "org.savantbuild.plugin:idea:2.0.0")
+release = loadPlugin(id: "org.savantbuild.plugin:release-git:2.0.0")
+
+target(name: "clean", description: "Cleans build directory") {
+  file.prune(dir: "build")
+}
+
+target(name: "int", description: "Releases a local integration build of the project") {
+}
+
+target(name: "test", description: "Runs the test", dependsOn: "clean") {
+  runCommand("composer", "install")
+  runCommand("vendor/bin/phpunit", "--include-path", "src", "-v", "test")
+}
+
+target(name: "publish", description: "Update packagist to sync with our GitHub tags", dependsOn: ["clean", "int"]) {
+  runCommand(
+      "curl", "-XPOST", "-H", "Content-Type:application/json",
+      "-d", "{\"repository\":{\"url\":\"https://packagist.org/packages/permify/permify-php\"}}",
+      "https://packagist.org/api/update-package?username=${global.packagistUsername}&apiToken=${global.packagistAPIToken}"
+  )
+}
+
+target(name: "release", description: "Releases a full version of the project", dependsOn: ["int"]) {
+  release.release()
+}
+
+def runCommand(String... args) {
+  def process = new ProcessBuilder(args).inheritIO().directory(new File('.')).start()
+  process.consumeProcessOutput(System.out, System.err)
+  process.waitFor()
+  if (process.exitValue() != 0) {
+    fail("Unable to run command [${args.join(' ')}]")
+  }
+}

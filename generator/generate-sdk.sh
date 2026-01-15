@@ -8,6 +8,7 @@ DEFAULT_OPENAPI_FILE="${SCRIPT_DIR}/openapi.json"
 DEFAULT_PACKAGE_NAME="permify-php"
 DEFAULT_INVOKER_PACKAGE="Permify"
 DEFAULT_COMPOSER_VENDOR="permify"
+DEFAULT_LICENSE="AGPL-3.0"
 
 usage() {
     echo "Usage: $0 [OPTIONS]"
@@ -19,6 +20,7 @@ usage() {
     echo "  -p, --package NAME      Package name (default: ${DEFAULT_PACKAGE_NAME})"
     echo "  -n, --namespace NAME    Invoker package/namespace (default: ${DEFAULT_INVOKER_PACKAGE})"
     echo "  -v, --vendor NAME       Composer vendor name (default: ${DEFAULT_COMPOSER_VENDOR})"
+    echo "  -l, --license NAME      Composer license field (default: ${DEFAULT_LICENSE})"
     echo "  -h, --help              Show this help message"
     echo ""
     echo "This script will update the following:"
@@ -35,6 +37,7 @@ OPENAPI_FILE="${DEFAULT_OPENAPI_FILE}"
 PACKAGE_NAME="${DEFAULT_PACKAGE_NAME}"
 INVOKER_PACKAGE="${DEFAULT_INVOKER_PACKAGE}"
 COMPOSER_VENDOR="${DEFAULT_COMPOSER_VENDOR}"
+COMPOSER_LICENSE="${DEFAULT_LICENSE}"
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -52,6 +55,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         -v|--vendor)
             COMPOSER_VENDOR="$2"
+            shift 2
+            ;;
+        -l|--license)
+            COMPOSER_LICENSE="$2"
             shift 2
             ;;
         -h|--help)
@@ -94,6 +101,7 @@ echo "  OpenAPI version: ${OPENAPI_VERSION}"
 echo "  Package name: ${PACKAGE_NAME}"
 echo "  Namespace: ${INVOKER_PACKAGE}"
 echo "  Composer vendor: ${COMPOSER_VENDOR}"
+echo "  Composer license: ${COMPOSER_LICENSE}"
 echo "  Temp directory: ${TEMP_OUTPUT_DIR}"
 echo ""
 
@@ -109,14 +117,17 @@ java -jar "${GENERATOR_JAR}" generate \
     -i "${OPENAPI_ABSOLUTE_PATH}" \
     -g php \
     -o "${TEMP_OUTPUT_DIR}" \
+    --additional-properties=composerPackageName="permify/permify-php" \
     --additional-properties=packageName="${PACKAGE_NAME}" \
     --additional-properties=invokerPackage="${INVOKER_PACKAGE}" \
     --additional-properties=composerVendorName="${COMPOSER_VENDOR}" \
     --additional-properties=composerProjectName="${PACKAGE_NAME}" \
     --additional-properties=artifactVersion="${OPENAPI_VERSION}" \
-    --additional-properties=license="AGPL-3.0" \
+    --additional-properties=artifactUrl="https://permify.co" \
+    --additional-properties=licenseName="${COMPOSER_LICENSE}" \
+    --additional-properties=developerOrganization="Ufuk Civan Atbas" \
+    --additional-properties=developerOrganizationUrl="https://github.com/ucatbas" \
     --skip-validate-spec
-
 
 if [[ $? -ne 0 ]]; then
     echo ""
@@ -137,10 +148,31 @@ else
     exit 1
 fi
 
-# Copy composer.json
+# Copy composer.json and ensure license is set
 if [[ -f "${TEMP_OUTPUT_DIR}/composer.json" ]]; then
     echo "  Updating composer.json"
-    cp "${TEMP_OUTPUT_DIR}/composer.json" "${PROJECT_ROOT}/"
+    # Patch composer.json if it does not display license field
+    TMP_COMPOSER="${TEMP_OUTPUT_DIR}/composer.json"
+    if ! grep -q '"license"' "$TMP_COMPOSER"; then
+        # Add license field after the "description" field
+        tmpfile=$(mktemp)
+        awk -v license="${COMPOSER_LICENSE}" '
+        BEGIN { added=0 }
+        /"description":/ {
+            print
+            if (!added) {
+                getline
+                print
+                print "    \"license\": \"" license "\","
+                added=1
+                next
+            }
+        }
+        { print }
+        ' "$TMP_COMPOSER" > "$tmpfile"
+        mv "$tmpfile" "$TMP_COMPOSER"
+    fi
+    cp "$TMP_COMPOSER" "${PROJECT_ROOT}/composer.json"
 fi
 
 # Copy other important files
